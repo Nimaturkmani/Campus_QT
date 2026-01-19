@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Campus Quick-Ticket</title>
+    <style>
+        :root {
+            --primary: #005f9e; /* Hochschul-Blau */
+            --bg: #f4f7f6;
+            --card: #ffffff;
+            --text: #333;
+            --success: #28a745;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+        }
+
+        .container {
+            background: var(--card);
+            width: 100%;
+            max-width: 400px; /* Mobile-First Design */
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: filter 0.3s; /* Für Weichzeichner bei Popup */
+        }
+
+        /* Header */
+        header { text-align: center; margin-bottom: 25px; }
+        .logo { font-size: 3rem; margin-bottom: 10px; }
+        h1 { margin: 0; font-size: 1.5rem; color: var(--primary); }
+        p.subtitle { margin: 5px 0 0; color: #666; font-size: 0.9rem; }
+
+        /* Formular Styles */
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-top: 15px;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 5px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 1rem;
+            font-family: inherit;
+        }
+
+        input:read-only {
+            background-color: #f0f0f0;
+            color: #555;
+            border-color: #ccc;
+            font-weight: bold;
+        }
+
+        /* Submit Button */
+        .btn-submit {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            width: 100%;
+            padding: 15px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.3s;
+            margin-top: 25px;
+        }
+        .btn-submit:hover { background-color: #004a7c; }
+
+        /* Hidden Field Animation */
+        .hidden-field {
+            display: none;
+            animation: slideDown 0.3s ease-in-out;
+        }
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* --- MODAL / POPUP STYLES --- */
+        .modal-overlay {
+            display: none; /* Standardmäßig versteckt */
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.6); /* Dunkler Hintergrund */
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 0.3s;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 350px;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            animation: popUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Bouncen */
+        }
+
+        .success-icon {
+            font-size: 4rem;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        .modal-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            text-align: left;
+            font-size: 0.9rem;
+            border-left: 4px solid var(--success);
+        }
+
+        .btn-close {
+            background-color: #333;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        @keyframes popUp {
+            from { transform: scale(0.8); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    </style>
+</head>
+<body>
+
+    <div class="container" id="main-container">
+        <header>
+            <div class="logo">🛠️</div>
+            <h1>Campus Quick-Ticket</h1>
+            <p class="subtitle">Gerät erkannt. Bitte Problem melden.</p>
+        </header>
+
+        <form id="supportForm" onsubmit="submitTicket(event)">
+            
+            <label>Gerätemodell</label>
+            <input type="text" value="Lenovo ThinkPad X1 Carbon" readonly>
+
+            <label>Seriennummer</label>
+            <input type="text" value="SN-8821-XA-2025" readonly>
+
+            <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+
+            <label for="issue">Was ist das Problem?</label>
+            <select id="issue" onchange="toggleOtherField()" required>
+                <option value="" disabled selected>Bitte wählen...</option>
+                <option value="battery">🔋 Akku lädt nicht / ist schwach</option>
+                <option value="screen">💻 Bildschirm flackert / schwarz</option>
+                <option value="keyboard">⌨️ Tastatur / Tasten klemmen</option>
+                <option value="software">💿 Software startet nicht</option>
+                <option value="other">❓ Sonstiges / Anderes</option>
+            </select>
+
+            <div id="other-container" class="hidden-field">
+                <label for="other-text">Bitte beschreibe das Problem kurz:</label>
+                <textarea id="other-text" rows="3" placeholder="Z.B. Scharnier gebrochen..."></textarea>
+            </div>
+
+            <label for="appointment">Nächstmöglicher Termin (IT-Support Gebaude 4. Raum 201)</label>
+            <select id="appointment" required>
+                </select>
+
+            <label for="phone">Telefonnummer (für Rückfragen)</label>
+            <input type="tel" id="phone" placeholder="0176 12345678" required>
+
+            <label for="email">E-Mail Adresse</label>
+            <input type="email" id="email" value="@stud.xyz-uni.de" required>
+
+            <button type="submit" class="btn-submit" id="submitBtn">Ticket jetzt absenden</button>
+        </form>
+    </div>
+
+    <div id="success-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="success-icon">✅</div>
+            <h2 style="color: var(--success); margin:0;">Ticket Gesendet!</h2>
+            <p style="color: #666;">Wir erwarten Sie zum gewählten Termin.</p>
+            
+            <div class="modal-info">
+                <strong>Ticket-ID:</strong> #T-9921<br>
+                <strong>Termin:</strong> <span id="confirmed-time">...</span><br>
+                <strong>Ort:</strong> Raum B.04 (IT-Support)
+            </div>
+
+            <p style="font-size: 0.8rem; color: #1b5e20;">
+                🌱 <strong>Nachhaltigkeits-Info:</strong><br>
+                Danke für die Meldung! Durch rechtzeitige Reparatur sparen wir Ressourcen.
+            </p>
+
+            <button class="btn-close" onclick="closeWindow()">Fenster schließen</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            generateTimeSlots();
+        });
+
+        function toggleOtherField() {
+            const select = document.getElementById('issue');
+            const container = document.getElementById('other-container');
+            const textArea = document.getElementById('other-text');
+
+            if (select.value === 'other') {
+                container.style.display = 'block';
+                textArea.required = true;
+            } else {
+                container.style.display = 'none';
+                textArea.required = false;
+            }
+        }
+
+        function generateTimeSlots() {
+            const select = document.getElementById('appointment');
+            const now = new Date();
+            const days = [
+                { name: "Heute", slots: ["14:00", "15:30", "16:45"] },
+                { name: "Morgen", slots: ["09:00", "10:30", "11:45", "14:15", "16:00"] },
+                { name: "Übermorgen", slots: ["08:30", "09:15", "10:00", "11:30", "13:00", "14:45", "15:30"] }
+            ];
+
+            days.forEach((day, index) => {
+                let date = new Date();
+                date.setDate(now.getDate() + index);
+                let dateString = date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' });
+
+                let group = document.createElement('optgroup');
+                group.label = `${day.name} (${dateString})`;
+
+                day.slots.forEach(time => {
+                    let option = document.createElement('option');
+                    option.value = `${dateString}, ${time} Uhr`; // Wert speichern
+                    option.text = `${time} Uhr`;
+                    group.appendChild(option);
+                });
+                select.appendChild(group);
+            });
+        }
+
+        function submitTicket(event) {
+            event.preventDefault(); 
+            
+            // 1. Daten holen für das Popup
+            const selectedTime = document.getElementById('appointment').value;
+            document.getElementById('confirmed-time').innerText = selectedTime;
+
+            // 2. Lade-Effekt auf Button
+            const btn = document.getElementById('submitBtn');
+            btn.innerText = "Sende...";
+            btn.style.opacity = "0.7";
+
+            setTimeout(() => {
+                // 3. Formular im Hintergrund weichzeichnen (Blur Effekt)
+                document.getElementById('main-container').style.filter = "blur(5px)";
+                
+                // 4. Popup anzeigen
+                document.getElementById('success-modal').style.display = "flex";
+            }, 800);
+        }
+
+        function closeWindow() {
+            // Versucht das Tab zu schließen
+            try {
+                window.close();
+            } catch(e) {}
+            
+            // Fallback: Zeigt einfach eine leere Seite an ("Geschlossen"-Simulation)
+            document.body.innerHTML = "<div style='display:flex; justify-content:center; align-items:center; height:100vh; flex-direction:column; color:#666;'><h1>🔒 Fenster geschlossen</h1><p>Sie können diesen Tab nun schließen.</p></div>";
+        }
+    </script>
+
+</body>
+</html>
